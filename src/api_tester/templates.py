@@ -50,6 +50,17 @@ def supported_sheets() -> list[str]:
     return list(SHEET_DYNAMIC_COLUMNS)
 
 
+def sample_value_for_column(sheet_name: str, column: str, row_number: int) -> object:
+    value = SAMPLE_VALUES.get(sheet_name, {}).get(column)
+    if isinstance(value, int):
+        return value + row_number - 1
+    if isinstance(value, float):
+        return value + row_number - 1
+    if value is not None:
+        return value
+    return f"{column}_{row_number}"
+
+
 def template_dataframe(sheet_name: str, sample_rows: int = 3) -> pd.DataFrame:
     columns = COMMON_COLUMNS + SHEET_DYNAMIC_COLUMNS[sheet_name]
     rows = []
@@ -60,8 +71,8 @@ def template_dataframe(sheet_name: str, sample_rows: int = 3) -> pd.DataFrame:
             "newendpoint": "https://new-api.example.com/resource",
             "method": "POST",
         }
-        row.update(SAMPLE_VALUES[sheet_name])
-        row["id"] = SAMPLE_VALUES[sheet_name]["id"] + index - 1
+        for column in SHEET_DYNAMIC_COLUMNS[sheet_name]:
+            row[column] = sample_value_for_column(sheet_name, column, index)
         rows.append(row)
     return pd.DataFrame(rows, columns=columns)
 
