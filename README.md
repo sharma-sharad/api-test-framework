@@ -15,6 +15,7 @@ Streamlit-based framework for validating old and new API behavior from Excel tes
 - Supports parallel execution.
 - Compares matching old/new responses by `TestcaseNumber`.
 - Validates HTTP status, response body, performance, and exact JSON differences.
+- Uses DeepDiff for robust nested JSON response comparison.
 - Produces downloadable Excel reports with audit details.
 - Includes a dedicated comparison lab UI to test comparison behavior without calling real APIs.
 - Writes structured logs and audit trails to `logs/`.
@@ -112,6 +113,7 @@ All other non-empty columns are converted into the JSON request body for that ro
 
 - The report compares the old and new API results from the same row and same `TestcaseNumber`.
 - Request bodies exclude `TestcaseNumber`, `oldendpoint`, `newendpoint`, and `method`.
+- Nested response differences are reported using DeepDiff paths such as `root['claim']['payments'][0]['amount']`.
 - Logs are written under `logs/api_testing.log`.
 - Audit events are written under `logs/audit_trail.jsonl`.
 

@@ -22,6 +22,7 @@ class ExecutionConfig:
     session_id: str
     timeout: int = 60
     max_workers: int = 5
+    ignore_order: bool = False
 
 
 def row_to_request_body(row: pd.Series) -> dict[str, Any]:
@@ -92,7 +93,11 @@ def execute_row(sheet_name: str, row: pd.Series, config: ExecutionConfig) -> dic
 
     old_result = call_api(str(row["oldendpoint"]), method, headers, body, config.timeout)
     new_result = call_api(str(row["newendpoint"]), method, headers, body, config.timeout)
-    comparison = compare_api_results(old_result, new_result)
+    comparison = compare_api_results(
+        old_result,
+        new_result,
+        ignore_order=config.ignore_order,
+    )
 
     audit_event(
         "testcase_completed",
@@ -124,6 +129,7 @@ def execute_row(sheet_name: str, row: pd.Series, config: ExecutionConfig) -> dic
         "response_match": comparison["response_match"],
         "performance_match": comparison["performance_match"],
         "overall_pass": comparison["overall_pass"],
+        "ignore_order": config.ignore_order,
         "differences": json.dumps(comparison["differences"], indent=2, default=str),
         "old_error": old_result["error"],
         "new_error": new_result["error"],

@@ -14,7 +14,7 @@ class ComparisonTests(unittest.TestCase):
         self.assertTrue(result["response_match"])
         self.assertTrue(result["performance_match"])
         self.assertTrue(result["overall_pass"])
-        self.assertEqual(result["differences"], [])
+        self.assertEqual(result["differences"], {})
 
     def test_detects_exact_response_difference(self):
         old = {"id": 1, "status": "OPEN", "amount": 100}
@@ -22,9 +22,44 @@ class ComparisonTests(unittest.TestCase):
 
         differences = diff_json(old, new)
 
-        self.assertIn({"path": "$.amount", "type": "removed", "old": 100, "new": None}, differences)
-        self.assertIn({"path": "$.currency", "type": "added", "old": None, "new": "USD"}, differences)
-        self.assertIn({"path": "$.status", "type": "changed", "old": "OPEN", "new": "CLOSED"}, differences)
+        self.assertIn("root['amount']", differences["dictionary_item_removed"])
+        self.assertIn("root['currency']", differences["dictionary_item_added"])
+        self.assertEqual(
+            differences["values_changed"]["root['status']"],
+            {"new_value": "CLOSED", "old_value": "OPEN"},
+        )
+
+    def test_detects_nested_response_difference_with_deepdiff_paths(self):
+        old = {
+            "claim": {
+                "id": 101,
+                "status": "OPEN",
+                "payments": [{"id": 1, "amount": 50}, {"id": 2, "amount": 75}],
+            }
+        }
+        new = {
+            "claim": {
+                "id": 101,
+                "status": "CLOSED",
+                "payments": [{"id": 1, "amount": 55}, {"id": 2, "amount": 75}],
+            }
+        }
+
+        result = compare_api_results(
+            {"status_code": 200, "response_text": json_dump(old), "elapsed_ms": 100},
+            {"status_code": 200, "response_text": json_dump(new), "elapsed_ms": 100},
+        )
+
+        self.assertFalse(result["response_match"])
+        self.assertFalse(result["overall_pass"])
+        self.assertEqual(
+            result["differences"]["values_changed"]["root['claim']['status']"],
+            {"new_value": "CLOSED", "old_value": "OPEN"},
+        )
+        self.assertEqual(
+            result["differences"]["values_changed"]["root['claim']['payments'][0]['amount']"],
+            {"new_value": 55, "old_value": 50},
+        )
 
     def test_status_mismatch_fails_overall_even_when_body_matches(self):
         old = {"status_code": 200, "response_text": '{"ok": true}', "elapsed_ms": 100}
@@ -35,6 +70,44 @@ class ComparisonTests(unittest.TestCase):
         self.assertFalse(result["status_match"])
         self.assertTrue(result["response_match"])
         self.assertFalse(result["overall_pass"])
+
+    def test_can_ignore_array_order_for_nested_payloads(self):
+        old = {
+            "claim": {
+                "payments": [
+                    {"id": 1, "amount": 50},
+                    {"id": 2, "amount": 75},
+                ]
+            }
+        }
+        new = {
+            "claim": {
+                "payments": [
+                    {"id": 2, "amount": 75},
+                    {"id": 1, "amount": 50},
+                ]
+            }
+        }
+
+        ordered_result = compare_api_results(
+            {"status_code": 200, "response_text": json_dump(old), "elapsed_ms": 100},
+            {"status_code": 200, "response_text": json_dump(new), "elapsed_ms": 100},
+        )
+        ignored_order_result = compare_api_results(
+            {"status_code": 200, "response_text": json_dump(old), "elapsed_ms": 100},
+            {"status_code": 200, "response_text": json_dump(new), "elapsed_ms": 100},
+            ignore_order=True,
+        )
+
+        self.assertFalse(ordered_result["response_match"])
+        self.assertTrue(ignored_order_result["response_match"])
+        self.assertEqual(ignored_order_result["differences"], {})
+
+
+def json_dump(value):
+    import json
+
+    return json.dumps(value)
 
 
 if __name__ == "__main__":

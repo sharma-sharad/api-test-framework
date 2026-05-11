@@ -46,6 +46,7 @@ For every row in each selected sheet:
 5. Validate:
    - HTTP status
    - response body
+   - nested JSON differences using DeepDiff
    - performance timing
    - exact response differences
 6. Generate a downloadable Excel report.

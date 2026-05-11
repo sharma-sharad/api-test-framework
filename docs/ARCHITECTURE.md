@@ -24,7 +24,7 @@ flowchart LR
 | `src/api_tester/auth.py` | Authentication request and `sessionID` extraction |
 | `src/api_tester/templates.py` | Supported sheets and Excel template generation |
 | `src/api_tester/execution.py` | Row parsing, request creation, parallel old/new API execution |
-| `src/api_tester/comparison.py` | Status, response, performance, and JSON diff comparison |
+| `src/api_tester/comparison.py` | Status, response, performance, and DeepDiff-based nested JSON comparison |
 | `src/api_tester/reports.py` | Excel report and summary generation |
 | `src/api_tester/logging_config.py` | Application logging and JSONL audit trail |
 | `tests/` | Automated validation of comparison behavior |
@@ -32,6 +32,8 @@ flowchart LR
 ## Execution Model
 
 The execution engine uses `ThreadPoolExecutor` to process test case rows in parallel. Each row is self-contained, so old and new endpoint calls are compared only within the same row and same `TestcaseNumber`.
+
+Response comparison is powered by DeepDiff so nested dictionaries and arrays are reported with precise paths. The UI also provides an option to ignore array order when order is not meaningful for a particular API.
 
 ## Audit Trail
 

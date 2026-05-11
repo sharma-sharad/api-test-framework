@@ -85,6 +85,10 @@ def render_execution() -> None:
         timeout = st.number_input("Request timeout seconds", min_value=1, max_value=300, value=60)
     with col_b:
         max_workers = st.number_input("Parallel workers", min_value=1, max_value=50, value=5)
+    ignore_order = st.checkbox(
+        "Ignore array order in response comparison",
+        value=False,
+    )
 
     if uploaded:
         workbook = pd.ExcelFile(uploaded)
@@ -111,6 +115,7 @@ def render_execution() -> None:
                 session_id=st.session_state.session_id,
                 timeout=int(timeout),
                 max_workers=int(max_workers),
+                ignore_order=ignore_order,
             )
             with st.spinner("Executing old and new API calls in parallel..."):
                 st.session_state.report_df = execute_sheets(sheets, config)
