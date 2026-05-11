@@ -11,6 +11,7 @@ import requests
 
 from .comparison import compare_api_results
 from .logging_config import audit_event, setup_logging
+from .ssl_config import build_verify_option
 from .templates import COMMON_COLUMNS
 
 
@@ -23,6 +24,8 @@ class ExecutionConfig:
     timeout: int = 60
     max_workers: int = 5
     ignore_order: bool = False
+    verify_ssl: bool = True
+    ca_bundle_path: str | None = None
 
 
 def row_to_request_body(row: pd.Series) -> dict[str, Any]:
@@ -47,6 +50,7 @@ def call_api(
     headers: dict[str, str],
     body: dict[str, Any],
     timeout: int,
+    verify: bool | str = True,
 ) -> dict[str, Any]:
     start = time.perf_counter()
     error = None
@@ -61,6 +65,7 @@ def call_api(
             json=body if method.upper() not in {"GET", "DELETE"} else None,
             params=body if method.upper() in {"GET", "DELETE"} else None,
             timeout=timeout,
+            verify=verify,
         )
         status_code = response.status_code
         response_text = response.text
@@ -84,6 +89,7 @@ def execute_row(sheet_name: str, row: pd.Series, config: ExecutionConfig) -> dic
     method = str(row["method"]).upper()
     body = row_to_request_body(row)
     headers = build_headers(config.session_id)
+    verify = build_verify_option(config.verify_ssl, config.ca_bundle_path)
 
     LOGGER.info("Executing testcase=%s sheet=%s method=%s", testcase_number, sheet_name, method)
     audit_event(
@@ -91,8 +97,8 @@ def execute_row(sheet_name: str, row: pd.Series, config: ExecutionConfig) -> dic
         {"sheet": sheet_name, "testcase_number": testcase_number, "method": method},
     )
 
-    old_result = call_api(str(row["oldendpoint"]), method, headers, body, config.timeout)
-    new_result = call_api(str(row["newendpoint"]), method, headers, body, config.timeout)
+    old_result = call_api(str(row["oldendpoint"]), method, headers, body, config.timeout, verify)
+    new_result = call_api(str(row["newendpoint"]), method, headers, body, config.timeout, verify)
     comparison = compare_api_results(
         old_result,
         new_result,
@@ -130,6 +136,8 @@ def execute_row(sheet_name: str, row: pd.Series, config: ExecutionConfig) -> dic
         "performance_match": comparison["performance_match"],
         "overall_pass": comparison["overall_pass"],
         "ignore_order": config.ignore_order,
+        "verify_ssl": config.verify_ssl,
+        "ca_bundle_path": config.ca_bundle_path or "",
         "differences": json.dumps(comparison["differences"], indent=2, default=str),
         "old_error": old_result["error"],
         "new_error": new_result["error"],

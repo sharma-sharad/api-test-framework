@@ -32,15 +32,29 @@ def render_authentication() -> None:
         auth_url = st.text_input("AUTH URL")
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
+        verify_ssl = st.checkbox("Verify SSL certificates", value=True, key="auth_verify_ssl")
+        ca_bundle_path = st.text_input(
+            "Custom CA bundle path",
+            help="Optional path to a PEM/CRT bundle for internal or corporate certificates.",
+            key="auth_ca_bundle_path",
+        )
         submitted = st.form_submit_button("Authenticate")
 
     if submitted:
         try:
-            st.session_state.session_id = authenticate(auth_url, username, password)
+            st.session_state.session_id = authenticate(
+                auth_url,
+                username,
+                password,
+                verify_ssl=verify_ssl,
+                ca_bundle_path=ca_bundle_path,
+            )
             st.success("Authentication successful. Session ID captured.")
         except Exception as exc:
             LOGGER.exception("Authentication failed")
             st.error(f"Authentication failed: {exc}")
+    if not st.session_state.get("auth_verify_ssl", True):
+        st.warning("SSL verification is disabled for authentication. Use only in trusted test environments.")
 
     manual_session = st.text_input(
         "Or paste existing session ID",
@@ -89,6 +103,13 @@ def render_execution() -> None:
         "Ignore array order in response comparison",
         value=False,
     )
+    verify_ssl = st.checkbox("Verify SSL certificates for API execution", value=True)
+    ca_bundle_path = st.text_input(
+        "Custom CA bundle path for API execution",
+        help="Optional path to a PEM/CRT bundle for internal or corporate certificates.",
+    )
+    if not verify_ssl:
+        st.warning("SSL verification is disabled for API execution. Use only in trusted test environments.")
 
     if uploaded:
         workbook = pd.ExcelFile(uploaded)
@@ -116,6 +137,8 @@ def render_execution() -> None:
                 timeout=int(timeout),
                 max_workers=int(max_workers),
                 ignore_order=ignore_order,
+                verify_ssl=verify_ssl,
+                ca_bundle_path=ca_bundle_path,
             )
             with st.spinner("Executing old and new API calls in parallel..."):
                 st.session_state.report_df = execute_sheets(sheets, config)

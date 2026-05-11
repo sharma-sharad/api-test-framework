@@ -26,6 +26,7 @@ flowchart LR
 | `src/api_tester/execution.py` | Row parsing, request creation, parallel old/new API execution |
 | `src/api_tester/comparison.py` | Status, response, performance, and DeepDiff-based nested JSON comparison |
 | `src/api_tester/reports.py` | Excel report and summary generation |
+| `src/api_tester/ssl_config.py` | SSL verification and custom CA bundle option handling |
 | `src/api_tester/logging_config.py` | Application logging and JSONL audit trail |
 | `tests/` | Automated validation of comparison behavior |
 
