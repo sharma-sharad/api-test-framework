@@ -47,6 +47,7 @@ For every row in each selected sheet:
    - HTTP status
    - response body
    - nested JSON differences using DeepDiff
+   - QA-readable difference summaries
    - performance timing
    - exact response differences
 6. Generate a downloadable Excel report.

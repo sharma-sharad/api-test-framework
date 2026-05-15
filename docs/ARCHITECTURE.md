@@ -34,7 +34,7 @@ flowchart LR
 
 The execution engine uses `ThreadPoolExecutor` to process test case rows in parallel. Each row is self-contained, so old and new endpoint calls are compared only within the same row and same `TestcaseNumber`.
 
-Response comparison is powered by DeepDiff so nested dictionaries and arrays are reported with precise paths. The UI also provides an option to ignore array order when order is not meaningful for a particular API.
+Response comparison is powered by DeepDiff so nested dictionaries and arrays are reported with precise paths. The report includes a QA-friendly `differences_summary` column and a technical `differences_raw` column. The UI also provides an option to ignore array order when order is not meaningful for a particular API.
 
 ## Audit Trail
 

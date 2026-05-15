@@ -1,6 +1,6 @@
 import unittest
 
-from src.api_tester.comparison import compare_api_results, diff_json
+from src.api_tester.comparison import compare_api_results, diff_json, format_path, summarize_differences
 
 
 class ComparisonTests(unittest.TestCase):
@@ -27,6 +27,12 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(
             differences["values_changed"]["root['status']"],
             {"new_value": "CLOSED", "old_value": "OPEN"},
+        )
+
+    def test_formats_deepdiff_path_for_qa_readability(self):
+        self.assertEqual(
+            format_path("root['claim']['payments'][0]['amount']"),
+            "claim > payments > item 1 > amount",
         )
 
     def test_detects_nested_response_difference_with_deepdiff_paths(self):
@@ -59,6 +65,14 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(
             result["differences"]["values_changed"]["root['claim']['payments'][0]['amount']"],
             {"new_value": 55, "old_value": 50},
+        )
+        self.assertIn(
+            'Changed claim > status from "OPEN" to "CLOSED".',
+            result["differences_summary"],
+        )
+        self.assertIn(
+            "Changed claim > payments > item 1 > amount from 50 to 55.",
+            result["differences_summary"],
         )
 
     def test_status_mismatch_fails_overall_even_when_body_matches(self):
@@ -102,6 +116,17 @@ class ComparisonTests(unittest.TestCase):
         self.assertFalse(ordered_result["response_match"])
         self.assertTrue(ignored_order_result["response_match"])
         self.assertEqual(ignored_order_result["differences"], {})
+
+    def test_summarizes_added_and_removed_fields_for_qa(self):
+        differences = diff_json(
+            {"claim": {"amount": 100, "status": "OPEN"}},
+            {"claim": {"status": "OPEN", "currency": "USD"}},
+        )
+
+        summary = summarize_differences(differences)
+
+        self.assertIn("Removed field claim > amount. Old value was 100.", summary)
+        self.assertIn('Added field claim > currency with value "USD".', summary)
 
 
 def json_dump(value):

@@ -138,7 +138,8 @@ def execute_row(sheet_name: str, row: pd.Series, config: ExecutionConfig) -> dic
         "ignore_order": config.ignore_order,
         "verify_ssl": config.verify_ssl,
         "ca_bundle_path": config.ca_bundle_path or "",
-        "differences": json.dumps(comparison["differences"], indent=2, default=str),
+        "differences_summary": comparison["differences_summary"],
+        "differences_raw": json.dumps(comparison["differences"], indent=2, default=str),
         "old_error": old_result["error"],
         "new_error": new_result["error"],
     }

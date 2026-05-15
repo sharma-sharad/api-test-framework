@@ -115,6 +115,7 @@ All other non-empty columns are converted into the JSON request body for that ro
 - The report compares the old and new API results from the same row and same `TestcaseNumber`.
 - Request bodies exclude `TestcaseNumber`, `oldendpoint`, `newendpoint`, and `method`.
 - Nested response differences are reported using DeepDiff paths such as `root['claim']['payments'][0]['amount']`.
+- Reports include `differences_summary` for QA-friendly review and `differences_raw` for technical traceability.
 - If internal APIs fail with `SSL_CERTIFICATE_VERIFY_FAILED`, provide a custom CA bundle path in the UI. Disabling SSL verification is available only for trusted test environments.
 - Logs are written under `logs/api_testing.log`.
 - Audit events are written under `logs/audit_trail.jsonl`.
