@@ -150,12 +150,14 @@ def render_execution() -> None:
     if not st.session_state.report_df.empty:
         report_df = st.session_state.report_df
         summary = summarize_report(report_df)
-        c1, c2, c3, c4, c5 = st.columns(5)
+        c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
         c1.metric("Total", summary["total"])
         c2.metric("Passed", summary["passed"])
         c3.metric("Failed", summary["failed"])
         c4.metric("Status Mismatch", summary["status_mismatches"])
         c5.metric("Response Mismatch", summary["response_mismatches"])
+        c6.metric("Performance Passed", summary["performance_passed"])
+        c7.metric("Performance Failed", summary["performance_failed"])
 
         st.dataframe(report_df, use_container_width=True)
         report = build_report_workbook(report_df)

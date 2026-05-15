@@ -18,6 +18,7 @@ Streamlit-based framework for validating old and new API behavior from Excel tes
 - Uses DeepDiff for robust nested JSON response comparison.
 - Supports SSL verification, custom CA bundles, and test-only SSL verification disablement.
 - Produces downloadable Excel reports with audit details.
+- Summary includes total pass/fail, status mismatches, response mismatches, and performance pass/fail counts.
 - Includes a dedicated comparison lab UI to test comparison behavior without calling real APIs.
 - Writes structured logs and audit trails to `logs/`.
 
