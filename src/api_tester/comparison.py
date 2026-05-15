@@ -36,9 +36,39 @@ def format_path(path: str) -> str:
         if field_name:
             parts.append(field_name)
         elif list_index:
-            parts.append(f"item {int(list_index) + 1}")
+            parts.append(f"record {int(list_index) + 1}")
 
     return " > ".join(parts) if parts else path
+
+
+def path_tokens(path: str) -> list[str]:
+    tokens = []
+    for field_name, list_index in PATH_TOKEN_PATTERN.findall(path):
+        if field_name:
+            tokens.append(field_name)
+        elif list_index:
+            tokens.append(f"record {int(list_index) + 1}")
+    return tokens
+
+
+def describe_change_location(path: str) -> tuple[str, str | None]:
+    tokens = path_tokens(path)
+    if not tokens:
+        return "response root", None
+
+    field_name = tokens[-1]
+    parent_tokens = tokens[:-1]
+    if not parent_tokens:
+        return "response root", field_name
+
+    return " > ".join(parent_tokens), field_name
+
+
+def describe_container_location(path: str) -> str:
+    tokens = path_tokens(path)
+    if not tokens:
+        return "response root"
+    return " > ".join(tokens)
 
 
 def format_value(value: Any) -> str:
@@ -58,32 +88,58 @@ def summarize_differences(differences: dict[str, Any]) -> str:
     lines: list[str] = []
 
     for path, values in differences.get("values_changed", {}).items():
+        parent, field_name = describe_change_location(path)
+        if field_name:
+            lines.append(
+                f"For {parent}, field {field_name} changed from "
+                f"{format_value(values.get('old_value'))} in old API to "
+                f"{format_value(values.get('new_value'))} in new API."
+            )
+            continue
         lines.append(
-            "Changed "
-            f"{format_path(path)} from {format_value(values.get('old_value'))} "
-            f"to {format_value(values.get('new_value'))}."
+            f"Response changed from {format_value(values.get('old_value'))} "
+            f"in old API to {format_value(values.get('new_value'))} in new API."
         )
 
     for path, values in differences.get("type_changes", {}).items():
+        parent, field_name = describe_change_location(path)
+        field_text = f"field {field_name}" if field_name else "response"
         lines.append(
-            "Changed type for "
-            f"{format_path(path)} from {values.get('old_type', 'old type')} "
-            f"to {values.get('new_type', 'new type')}. "
-            f"Old value: {format_value(values.get('old_value'))}; "
-            f"new value: {format_value(values.get('new_value'))}."
+            f"For {parent}, {field_text} changed type. Old API value was "
+            f"{format_value(values.get('old_value'))}; new API value is "
+            f"{format_value(values.get('new_value'))}."
         )
 
     for path, value in differences.get("dictionary_item_added", {}).items():
-        lines.append(f"Added field {format_path(path)} with value {format_value(value)}.")
+        parent, field_name = describe_change_location(path)
+        if field_name:
+            lines.append(
+                f"In new API, field {field_name} was added under {parent} "
+                f"with value {format_value(value)}."
+            )
+        else:
+            lines.append(f"In new API, response value was added: {format_value(value)}.")
 
     for path, value in differences.get("dictionary_item_removed", {}).items():
-        lines.append(f"Removed field {format_path(path)}. Old value was {format_value(value)}.")
+        parent, field_name = describe_change_location(path)
+        if field_name:
+            lines.append(
+                f"Field {field_name} existed under {parent} in old API but is missing "
+                f"in new API. Old API value was {format_value(value)}."
+            )
+        else:
+            lines.append(f"Old API response value is missing in new API: {format_value(value)}.")
 
     for path, value in differences.get("iterable_item_added", {}).items():
-        lines.append(f"Added list value at {format_path(path)}: {format_value(value)}.")
+        lines.append(
+            f"New API added {describe_container_location(path)} with value {format_value(value)}."
+        )
 
     for path, value in differences.get("iterable_item_removed", {}).items():
-        lines.append(f"Removed list value at {format_path(path)}. Old value was {format_value(value)}.")
+        lines.append(
+            f"Old API had {describe_container_location(path)}, but it is missing in new API. "
+            f"Old API value was {format_value(value)}."
+        )
 
     if lines:
         return "\n".join(f"{index}. {line}" for index, line in enumerate(lines, start=1))
